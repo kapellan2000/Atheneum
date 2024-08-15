@@ -6,7 +6,10 @@
 #      by: pyside2-uic @pyside_tools_VERSION@ running on PySide2 2.0.0~alpha0
 #
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
+
+
+
 
 class Ui_w_Atheneum(object):
     def setupUi(self, w_Atheneum):

@@ -37,9 +37,13 @@ import logging
 import json
 
 try:
-    from PySide2.QtCore import *
-    from PySide2.QtGui import *
-    from PySide2.QtWidgets import *
+    #from PySide2.QtCore import *
+    #from PySide2.QtGui import *
+    #from PySide2.QtWidgets import *
+    
+    from qtpy.QtCore import *
+    from qtpy.QtGui import *
+    from qtpy.QtWidgets import *
 
     psVersion = 2
 except:
@@ -53,7 +57,7 @@ if psVersion == 1:
     import SceneBrowser_ui
 else:
     import Atheneum_ui_ps2 as Atheneum_ui
-from PySide2 import QtCore, QtGui, QtWidgets#
+from qtpy import QtCore, QtGui, QtWidgets#
 
 from PrismUtils.Decorators import err_catcher_plugin as err_catcher
 
