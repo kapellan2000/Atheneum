@@ -142,6 +142,7 @@ class atheneum(QWidget, Atheneum_ui.Ui_w_Atheneum):
         self.tw_versions.doubleClicked.connect(self.asset_import) 
         self.cb_lib.currentIndexChanged.connect(self.libselect)
         self.at_path = self.refreshIntegrations()
+        print("&&& ", self.at_path)
         self.cb_lib.addItems(self.at_path)
         #for key, value in libList.items():
         
