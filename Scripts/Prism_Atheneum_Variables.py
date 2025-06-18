@@ -33,7 +33,7 @@
 
 class Prism_Atheneum_Variables(object):
     def __init__(self, core, plugin):
-        self.version = "v2.0.0.beta14.1"
+        self.version = "v2.0.17_02"
         self.pluginName = "Atheneum"
         self.pluginType = "App"
         self.appShortName = "Atheneum"
@@ -43,5 +43,6 @@ class Prism_Atheneum_Variables(object):
         self.appSpecificFormats = self.sceneFormats
         self.outputFormats = [".abc", ".obj", ".fbx", "ShotCam"]
         self.appColor = [255, 255, 255]
+        self.canOverrideExecuteable = False
         self.renderPasses = []
         self.platforms = ["Windows", "Linux", "Darwin"]

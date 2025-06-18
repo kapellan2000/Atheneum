@@ -32,21 +32,33 @@
 
 
 from Prism_Atheneum_Variables import Prism_Atheneum_Variables
+from Prism_Atheneum_Prism import Prism_Atheneum_Prism
+from Prism_Atheneum_Maya import Prism_Atheneum_Maya
 from Prism_Atheneum_externalAccess_Functions import (
     Prism_Atheneum_externalAccess_Functions,
 )
-from Prism_Atheneum_Functions import Prism_Atheneum_Functions
+#from Prism_Atheneum_Functions import Prism_Atheneum_Functions
 from Prism_Atheneum_Integration import Prism_Atheneum_Integration
 
 
-class Prism_Plugin_Atheneum(
+class Prism_Atheneum(
     Prism_Atheneum_Variables,
+    Prism_Atheneum_Prism,
+    Prism_Atheneum_Maya,
     Prism_Atheneum_externalAccess_Functions,
-    Prism_Atheneum_Functions,
+    #Prism_Atheneum_Functions,
     Prism_Atheneum_Integration,
+    
+    
 ):
     def __init__(self, core):
         Prism_Atheneum_Variables.__init__(self, core, self)
+        Prism_Atheneum_Prism.__init__(self, core, self)
+        Prism_Atheneum_Maya.__init__(self, core, self)
         Prism_Atheneum_externalAccess_Functions.__init__(self, core, self)
-        Prism_Atheneum_Functions.__init__(self, core, self)
+        #Prism_Atheneum_Functions.__init__(self, core, self)
         Prism_Atheneum_Integration.__init__(self, core, self)
+        
+        
+
+

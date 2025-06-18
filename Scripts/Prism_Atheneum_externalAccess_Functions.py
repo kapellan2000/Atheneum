@@ -72,6 +72,21 @@ class Prism_Atheneum_externalAccess_Functions(QWidget):
         self.core.registerCallback(
             "projectBrowser_loadUI", self.projectBrowser_loadUI, plugin=self.plugin
         )
+        
+        self.core.registerCallback(
+            "onStateManagerOpen", self.onStateManagerOpen, plugin=self.plugin
+        )
+        self.core.registerCallback(
+            "onStateManagerClose", self.onStateManagerClose, plugin=self.plugin
+        )
+        
+        self.core.registerCallback(
+            "prePlayblast", self.prePlayblast, plugin=self.plugin
+        )
+        self.core.registerCallback(
+            "onStateStartup", self.onStateStartup, plugin=self, priority=40
+        )
+
 
         
     @err_catcher(name=__name__)
@@ -100,22 +115,77 @@ class Prism_Atheneum_externalAccess_Functions(QWidget):
         
     def projectBrowser_loadUI(self, origin):
         if self.core.appPlugin.pluginName != "Standalone4":
-            psMenu = QMenu("LibraryR8")
-            psAction = QAction("Connect", origin)
-            self.path = "Q:/01_Library/LibraryStarTreck"
-            #psAction.triggered.connect(lambda: atheneum.refresh(self.path,"","asset"))
-            psAction.triggered.connect(lambda: self.refresh("","","asset"))
-            psMenu.addAction(psAction)
-            origin.menuTools.addSeparator()
-            origin.menuTools.addMenu(psMenu)
-            #self.layout = QGridLayout()
+            #psMenu = QMenu("LibraryR8")
+            #psAction = QAction("Connect", origin)
+            #psAction.triggered.connect(lambda: self.refresh("","","asset"))
+            #psMenu.addAction(psAction)
+            #origin.menuTools.addSeparator()
+            #origin.menuTools.addMenu(psMenu)
 
             self.libTab = atheneum(
                 core=self.core, refresh=False
             )
             origin.tbw_project.addTab(self.libTab,"Atheneum") 
+            
+        for cls in self.plugin.__class__.__mro__:  # Перебираем классы от текущего до object
+            if hasattr(cls, "PB_loadUI") and cls != self.__class__:
+                cls.PB_loadUI(self.plugin, origin)
 
 
+    def onStateManagerOpen(self, origin):
+        #origin.b_createPlayblast
+        for cls in self.plugin.__class__.__mro__:  # Перебираем классы от текущего до object
+            if hasattr(cls, "SM_Open") and cls != self.__class__:
+                cls.SM_Open(self.plugin, origin)
+                
+    def onStateManagerClose(self, origin):
+        for cls in self.plugin.__class__.__mro__:  # Перебираем классы от текущего до object
+            if hasattr(cls, "SM_Close") and cls != self.__class__:
+                cls.SM_Close(self.plugin, origin)
+
+    def prePlayblast(self, **kwargs):
+        print("PRE0")
+        origin = kwargs.get("state", None)
+        for cls in self.plugin.__class__.__mro__:  # Перебираем классы от текущего до object
+           if hasattr(cls, "SM_preBlast") and cls != self.__class__:
+               cls.SM_preBlast(self.plugin, origin)
+                
+
+    def onStateStartup(self, origin):
+        for cls in self.plugin.__class__.__mro__:  # Перебираем классы от текущего до object
+            if hasattr(cls, "SM_Startup") and cls != self.__class__:
+                cls.SM_Startup(self.plugin, origin)
+                
+        # if self.core.appPlugin.pluginName == "Maya":
+            # if state.className == "Playblast":
+
+                # self.new_groupbox = QGroupBox("Настройки")  # Создаем QGroupBox
+                # self.new_layout = QVBoxLayout(self.new_groupbox)  # Лэйаут для QGroupBox
+                # self.new_groupbox.setLayout(self.new_layout)  # Устанавливаем лэйаут
+
+                # Создаем виджет с чекбоксом и лейблом
+                # self.w_textured = QWidget()
+                # self.lo_textured = QHBoxLayout()
+                # self.lo_textured.setContentsMargins(9, 0, 9, 0)
+                # self.w_textured.setLayout(self.lo_textured)
+
+                # self.l_textured = QLabel("Textured Viewport:")
+                # spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Expanding)
+                # self.chb_textured = QCheckBox()
+                # self.chb_textured.setChecked(False)
+
+                # self.lo_textured.addWidget(self.l_textured)
+                # self.lo_textured.addSpacerItem(spacer)
+                # self.lo_textured.addWidget(self.chb_textured)
+
+                # self.new_layout.addWidget(self.w_textured)  # Добавляем в QGroupBox
+
+                # Добавляем QGroupBox в основной лэйаут
+                # origin.verticalLayout.addWidget(self.new_groupbox)
+
+
+    #def prePlayblast(self, origin):
+    #    print("---------------------------------------")
 
              
     def entered(self, prevTab=None, navData=None):
@@ -142,7 +212,7 @@ class atheneum(QWidget, Atheneum_ui.Ui_w_Atheneum):
         self.tw_versions.doubleClicked.connect(self.asset_import) 
         self.cb_lib.currentIndexChanged.connect(self.libselect)
         self.at_path = self.refreshIntegrations()
-        print("&&& ", self.at_path)
+        
         self.cb_lib.addItems(self.at_path)
         #for key, value in libList.items():
         

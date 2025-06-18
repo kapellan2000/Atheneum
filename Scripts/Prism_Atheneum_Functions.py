@@ -57,6 +57,8 @@ class Prism_Atheneum_Functions(object):
         self.core.registerCallback(
             "onProjectBrowserStartup", self.onProjectBrowserStartup, plugin=self.plugin
         )
+    def testa(self):
+        print("testAAA")
 
     @err_catcher(name=__name__)
     def startup(self, origin):
