@@ -1,9 +1,9 @@
 # Atheneum plugin for Prism 2.0
 
-> Atheneum plugin for Prism allow you to connect any project as asset library
+> Atheneum plugin for Prism allow you to connect any old project as asset library
 
 ## **Note: 
-This plugin has been tested on Windows 10 with cinema 2024 and Prism v2.0.beta17.13
+This plugin has been tested on Windows 11 with maya 2024 and Prism v2.0.17
 
 This is a test draft that supports minimal functionality and requires further development. Compatible with Cinema but can be adaptate to any soft.
 
