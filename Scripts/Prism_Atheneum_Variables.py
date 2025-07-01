@@ -33,7 +33,7 @@
 
 class Prism_Atheneum_Variables(object):
     def __init__(self, core, plugin):
-        self.version = "v2.0.17_02"
+        self.version = "v2.0.17_10"
         self.pluginName = "Atheneum"
         self.pluginType = "App"
         self.appShortName = "Atheneum"

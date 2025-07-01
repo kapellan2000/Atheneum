@@ -77,7 +77,35 @@ class Prism_Atheneum_Prism(object):
         self.core.registerCallback("postExport", self.postExport, plugin=self.plugin)
         
         self.core.registerCallback("openPBFileContextMenu", self.openPBFileContextMenu, plugin=self.plugin)
-        
+        self.core.registerCallback("getStateMenu", self.getStateMenu, plugin=self.plugin)
+
+
+
+
+    @err_catcher(name=__name__)
+    def getStateMenu(self, *args):
+        origint = args[0]
+        createMenu = args[1]
+
+        act = createMenu.addAction("Duplica")
+
+        def on_duplicate_clicked():
+            selStateData = [[s, None] for s in origint.getSelectedStates()]
+            if not selStateData:
+                return
+
+            origint.appendChildStates(selStateData[-1][0], selStateData)
+
+            stateData = {"states": []}
+            for idx, i in enumerate(selStateData):
+                path = i[0].ui.getStateProps().get("filepath")  # без лишней скобки
+                sm = self.core.getStateManager()
+                if sm and path:
+                    sm.importFile(path)
+
+        act.triggered.connect(on_duplicate_clicked)
+
+
 
     @err_catcher(name=__name__)
     def openPBFileContextMenu(self, *args):
@@ -185,88 +213,94 @@ class Prism_Atheneum_Prism(object):
             shutil.copyfile(scenefile_path, output_path)
         
     def onProductBrowserOpen(self, *args):
-        
-        # preview in ProductBrowser >>>
         widget = args[0].tw_versions  
         original_mouse_press = widget.mousePressEvent
         original_mouse_move = widget.mouseMoveEvent
 
-    def wrappedMousePressEvent(event):
-        self._click_pos = event.pos()
+        def wrappedMousePressEvent(event):
+            self._click_pos = event.pos()
 
-        index = widget.indexAt(event.pos())
-        if hasattr(self, 'detailWin') and self.detailWin is not None and self.detailWin.isVisible():
-            self.detailWin.close()
-            self.detailWin = None
+            if event.button() == Qt.RightButton:
+                # просто передаём событие дальше, не трогаем
+                if original_mouse_press:
+                    original_mouse_press(event)
+                return
 
-        if index.isValid():
-            row = index.row()
-            first_col_index = index.sibling(row, 0)
-            model = index.model()
+            index = widget.indexAt(event.pos())
+            if hasattr(self, 'detailWin') and self.detailWin is not None and self.detailWin.isVisible():
+                self.detailWin.close()
+                self.detailWin = None
 
-            if model is not None:
-                data = model.data(first_col_index, Qt.UserRole)
+            if index.isValid():
+                row = index.row()
+                first_col_index = index.sibling(row, 0)
+                model = index.model()
 
-                # Проверяем, что data — это словарь и в нём есть нужные ключи
-                required_keys = ["path", "asset", "task", "version"]
-                if isinstance(data, dict) and all(k in data for k in required_keys):
-                    prvPath = (
-                        data["path"] + "\\" +
-                        data["asset"] + "_" +
-                        data["task"] + "_" +
-                        data["version"] + "preview.jpg"
-                    )
-
-                    if os.path.exists(prvPath):
-                        self.detailWin = QFrame()
-                        ss = getattr(self.core.appPlugin, "getFrameStyleSheet", lambda x: "")(self)
-                        self.detailWin.setStyleSheet(
-                            ss + """ .QFrame{ border: 2px solid rgb(100,100,100);} """
+                if model is not None:
+                    data = model.data(first_col_index, Qt.UserRole)
+                    print(data)
+                    for i in data:
+                        print(">> ", i, "- ", data[i])
+                        
+                    required_keys = ["path", "asset", "task", "version"]
+                    if isinstance(data, dict) and all(k in data for k in required_keys):
+                        
+                        prvPath = (
+                            data["path"] + "\\" +
+                            data["asset"] + "_" +
+                            data["product"] + "_" +
+                            data["version"] + "preview.jpg"
                         )
+                        print(prvPath)
+                        if os.path.exists(prvPath):
+                            self.detailWin = QFrame()
+                            ss = getattr(self.core.appPlugin, "getFrameStyleSheet", lambda x: "")(self)
+                            self.detailWin.setStyleSheet(
+                                ss + """ .QFrame{ border: 2px solid rgb(100,100,100);} """
+                            )
 
-                        self.core.parentWindow(self.detailWin)
-                        winwidth = 320
-                        winheight = 10
-                        VBox = QVBoxLayout()
+                            self.core.parentWindow(self.detailWin)
+                            winwidth = 320
+                            winheight = 10
+                            VBox = QVBoxLayout()
 
-                        imgmap = self.core.media.getPixmapFromPath(prvPath)
-                        l_prv = QLabel()
-                        l_prv.setPixmap(imgmap)
-                        l_prv.setStyleSheet("border: 1px solid rgb(100,100,100);")
-                        VBox.addWidget(l_prv)
+                            imgmap = self.core.media.getPixmapFromPath(prvPath)
+                            l_prv = QLabel()
+                            l_prv.setPixmap(imgmap)
+                            l_prv.setStyleSheet("border: 1px solid rgb(100,100,100);")
+                            VBox.addWidget(l_prv)
 
-                        w_info = QWidget()
-                        GridL = QGridLayout()
-                        GridL.setColumnStretch(1, 1)
-                        w_info.setLayout(GridL)
-                        GridL.setContentsMargins(0, 0, 0, 0)
-                        VBox.addWidget(w_info)
+                            w_info = QWidget()
+                            GridL = QGridLayout()
+                            GridL.setColumnStretch(1, 1)
+                            w_info.setLayout(GridL)
+                            GridL.setContentsMargins(0, 0, 0, 0)
+                            VBox.addWidget(w_info)
 
-                        self.detailWin.setLayout(VBox)
-                        self.detailWin.setWindowFlags(
-                            Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.SplashScreen
-                        )
-                        self.detailWin.setAttribute(Qt.WA_ShowWithoutActivating)
-                        self.detailWin.setGeometry(0, 0, winwidth, winheight)
-                        self.detailWin.move(QCursor.pos().x() + 20, QCursor.pos().y())
-                        self.detailWin.show()
+                            self.detailWin.setLayout(VBox)
+                            self.detailWin.setWindowFlags(
+                                Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.SplashScreen
+                            )
+                            self.detailWin.setAttribute(Qt.WA_ShowWithoutActivating)
+                            self.detailWin.setGeometry(0, 0, winwidth, winheight)
+                            self.detailWin.move(QCursor.pos().x() + 20, QCursor.pos().y())
+                            self.detailWin.show()
 
-                        def close_on_click(event):
-                            if self.detailWin:
-                                self.detailWin.close()
-                                self.detailWin = None
+                            def close_on_click(event):
+                                if self.detailWin:
+                                    self.detailWin.close()
+                                    self.detailWin = None
 
-                        self.detailWin.mousePressEvent = close_on_click
+                            self.detailWin.mousePressEvent = close_on_click
+                    else:
+                        print(f"[Atheneum] Пропущено: отсутствуют ключи в data — {data}")
                 else:
-                    print(f"[Atheneum] Пропущено: отсутствуют ключи в data — {data}")
+                    print("[Atheneum] Нет model у index")
             else:
-                print("[Atheneum] Нет model у index")
-        else:
-            print("[Atheneum] Невалидный index")
+                print("[Atheneum] Невалидный index")
 
-        if original_mouse_press:
-            original_mouse_press(event)
-
+            if original_mouse_press:
+                original_mouse_press(event)
 
         def wrappedMouseMoveEvent(event):
             if hasattr(self, '_click_pos') and (event.pos() - self._click_pos).manhattanLength() < 5:
@@ -279,6 +313,7 @@ class Prism_Atheneum_Prism(object):
             if original_mouse_move:
                 original_mouse_move(event)
 
+        # Назначаем обработчики
         widget.mousePressEvent = wrappedMousePressEvent
         widget.mouseMoveEvent = wrappedMouseMoveEvent
-        # preview in ProductBrowser <<<
+            # preview in ProductBrowser <<<

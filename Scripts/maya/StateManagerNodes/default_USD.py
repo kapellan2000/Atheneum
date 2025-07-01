@@ -918,7 +918,7 @@ class USDClass(object):
     @err_catcher(name=__name__)
     def executeState(self, parent, useVersion="next"):
         
-        print(dir(self.core.getPlugin("Atheneum")))
+        #print(dir(self.core.getPlugin("Atheneum")))
         rangeType = self.cb_rangeType.currentText()
         startFrame, endFrame = self.getFrameRange(rangeType)
         if startFrame is None:

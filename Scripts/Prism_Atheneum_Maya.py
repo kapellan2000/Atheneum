@@ -61,7 +61,7 @@ else:
 from qtpy import QtCore, QtGui, QtWidgets#
 
 from PrismUtils.Decorators import err_catcher as err_catcher
-
+from PrismUtils import PrismWidgets
 
 logger = logging.getLogger(__name__)
 
@@ -79,11 +79,22 @@ class Prism_Atheneum_Maya(object):
         self.core.registerCallback(
             "onStateManagerOpen", self.onStateManagerOpenMa, plugin=self.plugin
         )
+        self.core.registerCallback(
+            "preImport", self.preImport, plugin=self.plugin
+        )
         if self.core.appPlugin.pluginName == "Maya":
             import maya.cmds as cmds
             import maya.mel as mel
             self.cmds = cmds
             self.mel = mel
+            
+            import mayaUsd.lib as mayaUsdLib
+            from pxr import Usd, UsdGeom
+
+            self.mayaUsdLib = mayaUsdLib
+            self.usd = Usd
+            self.UsdGeom = UsdGeom
+            
             self.hud_items = [
                 ("Logo:", True),
                 ("Shot Name:", True),
@@ -98,17 +109,179 @@ class Prism_Atheneum_Maya(object):
             # self.core.registerCallback("onStateManagerShow", self.onStateManagerShow, plugin=self.plugin)
         
 
-    # def onStateManagerShow(self, *args):
-        # print("333333333333333333333")
-        # origin = args[0]
-        # origin.menuAbout.addAction("About this plugin")
-        # origin.menuAbout.addSeparator()
-        # origin.menuAbout.addAction("Check for Updates")
+    def preImport(self, *args, **kwargs):
+        #usd import 
+        ext = os.path.splitext(kwargs["importfile"])[1]
+        
+        parts = kwargs["importfile"].split("\\")
+        name = parts[parts.index("Export") - 1]
+        XfOfs = "/root"
+        if ext==".usd" or ext==".usda":
+            pass
+
+            file_path = self.cmds.file(q=True, sceneName=True)
+
+
+            if file_path == "":
+                self.core.showFileNotInProjectWarning()
+                return
+            if not self.core.fileInPipeline(file_path, validateFilename=False):
+                self.core.showFileNotInProjectWarning()
+                return
+            else:
+                #print(f"📁 Сцена сохранена: {file_path}")
+                #print(f"📝 Имя файла: {os.path.basename(file_path)}")
+
+
+                sel = self.cmds.ls(selection=True, long=True)
+                if not sel:
+                    create_stage = True
+                else:
+
+                    node_type = self.cmds.nodeType(sel[0])
+
+                    if node_type == "transform":
+                        children = self.cmds.listRelatives(sel[0], children=True, fullPath=True) or []
+                        usd_shapes = [child for child in children if self.cmds.nodeType(child) == "mayaUsdProxyShape"]
+
+                        if usd_shapes:
+                            create_stage = False
+                        else:
+                            create_stage = True
+                    elif node_type == "mayaUsdProxyShape":
+                        create_stage = False
+                    else:
+                        create_stage = True
+                action = 1
+                if create_stage:
+                    msg = QMessageBox(
+                        QMessageBox.Question,
+                        "Create Stage",
+                        "⚠️No USD Stage selected. Do you want to create a new reference?",
+                        QMessageBox.No,
+                    )
+                    msg.addButton("Yes", QMessageBox.YesRole)
+                    msg.setParent(self.core.messageParent, Qt.Window)
+                    action = msg.exec_()
+                if action == 0:
+
+                    # Загружаем плагин, если ещё не загружен
+                    if not self.cmds.pluginInfo('mayaUsdPlugin', query=True, loaded=True):
+                        self.cmds.loadPlugin('mayaUsdPlugin')
+
+
+                    fileName = self.core.getCurrentFileName()
+                    context = self.core.getScenefileData(fileName)
+
+                    nameWin = PrismWidgets.CreateItem(
+                        startText="USD_",
+                        showTasks=True,
+                        taskType="export",
+                        core=self.core
+                    )
+                    self.core.parentWindow(nameWin)
+                    nameWin.setWindowTitle("USD_Name")
+                    nameWin.l_item.setText("Productname:")
+                    nameWin.buttonBox.buttons()[0].setText("Ok")
+                    nameWin.e_item.selectAll()
+                    
+                    comment_field = QtWidgets.QLineEdit()
+                    comment_field.setPlaceholderText("Comment")
+                    nameWin.layout().addWidget(comment_field)
+                    
+                    result = nameWin.exec_()
+                    if result == 0:
+                        return {"cancel": True}
+                        
+                    product = nameWin.e_item.text()
+                    comment = comment_field.text()
+
+                    #product = "usd"
+                    extension=".usda"
+                    framePadding = ""
+                    publishComment=comment
+                    version= ""
+                    location="global"
+
+
+                    #context['department'] = 'Usd'
+                    #context['task'] = 'usd'
+
+                    sData = self.core.products.generateProductPath(
+                        entity=context,
+                        task=product,
+                        extension=extension,
+                        framePadding=framePadding,
+                        comment=publishComment,
+                        version=version,
+                        location=location,
+                        returnDetails=True,
+                    )
+
+
+
+                    usd_file = sData["path"]
+
+                    # Создаём transform и proxy shape
+                    transform = self.cmds.createNode('transform', name='UsdStageRoot_' + product)
+                    shape = self.cmds.createNode('mayaUsdProxyShape', name='UsdStageShape_' + product, parent=transform)
+
+                    # Привязываем файл к shape
+                    self.cmds.setAttr(f"{shape}.filePath", usd_file, type="string")
+                    self.cmds.setAttr(f"{shape}.primPath", "/", type="string")
+
+                    # Создаём новый USD Stage
+                    stage = self.usd.Stage.CreateNew(usd_file)
+                    group1 = self.UsdGeom.Xform.Define(stage, XfOfs)
+                    infoPath = os.path.join(os.path.dirname(usd_file), "versioninfo.json")
+                    os.makedirs(os.path.dirname(infoPath), exist_ok=True)
+                    self.core.setConfig(configPath=infoPath, data=sData, updateNestedData=True)
+                    
+                elif action == 1:
+                    shape = sel[0]
+                    
+                    usd_path = self.cmds.getAttr(f"{shape}.filePath")
+                    if not usd_path:
+                        raise RuntimeError("Выделенный shape не содержит путь к файлу.")
+                    stage = self.usd.Stage.Open(usd_path)
+
+                else :
+                    return {"cancel": True}
+                
+                XfOfsTr = XfOfs+ "/XfTr" + name
+                # Добавляем Xform /Group1/Group2
+                group2 = self.UsdGeom.Xform.Define(stage, XfOfsTr)
+                # Сохраняем изменения
+                
+                # Получаем прим /Xform/Xform (куда будет импорт)
+                target_prim = stage.GetPrimAtPath(XfOfsTr)
+
+                # Добавляем референс
+                target_prim.GetReferences().AddReference(kwargs["importfile"])
+                
+                
+                stage.GetRootLayer().Save()
+
+
+
+
+                
+                print("USD Stage создан и Xform добавлен.")
+            
+                
+                
+                
+                back = {"cancel": True}
+                
+                
+                
+            #else:
+            #    back = {"cancel": False}
+            return back
         
     def StateManagerAddBtn(self, origin):
         if self.core.appPlugin.pluginName == "Maya":
             menu = origin.menuAbout
-            print(">>>>>> > ")
             for action in menu.actions():
                 print(action.text())
             action_exists = any(action.text() == ">Restore connection" for action in menu.actions())
@@ -329,7 +502,7 @@ class Prism_Atheneum_Maya(object):
                     if file.endswith(".py") and not file.endswith("_ui.py"):
                         state_manager.loadStateTypeFromFile(os.path.join(root, file))
                         
-                break  # Только верхний уровень
+                break 
 
 
 
@@ -499,8 +672,11 @@ class Prism_Atheneum_Maya(object):
             selection = not origin.chb_wholeScene.isChecked()
 
             # Получаем кадры анимации
-            start_frame = int(self.cmds.playbackOptions(q=True, min=True))
-            end_frame = int(self.cmds.playbackOptions(q=True, max=True))
+            #start_frame = int(self.cmds.playbackOptions(q=True, min=True))
+            #end_frame = int(self.cmds.playbackOptions(q=True, max=True))
+
+        #startFrame,
+        #endFrame,
 
             # Удаляем файл, если существует
             if os.path.exists(outputPath):
@@ -521,7 +697,7 @@ class Prism_Atheneum_Maya(object):
                 exportDisplayColor=True,
                 shadingMode="useRegistry",
                 materialsScopeName="Looks",
-                frameRange=(start_frame, end_frame),
+                frameRange=(startFrame, endFrame),
                 defaultUSDFormat=usd_format
             )
 
