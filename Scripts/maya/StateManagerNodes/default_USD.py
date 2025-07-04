@@ -598,7 +598,7 @@ class USDClass(object):
 
         self.refreshSubmitUi()
         self.nameChanged(self.e_name.text())
-        self.core.callback("sm_export_updateUi", self)
+        #self.core.callback("sm_export_updateUi", self)
 
     @err_catcher(name=__name__)
     def updateObjectList(self):

@@ -86,8 +86,13 @@ class Prism_Atheneum_externalAccess_Functions(QWidget):
         self.core.registerCallback(
             "onStateStartup", self.onStateStartup, plugin=self, priority=40
         )
-
-
+        
+        self.core.registerCallback(
+            "sm_export_updateUi", self.sm_export_updateUi, plugin=self, priority=40
+        )
+        
+    def sm_export_updateUi(self, origin):
+        pass
         
     @err_catcher(name=__name__)
     
@@ -144,7 +149,6 @@ class Prism_Atheneum_externalAccess_Functions(QWidget):
                 cls.SM_Close(self.plugin, origin)
 
     def prePlayblast(self, **kwargs):
-        print("PRE0")
         origin = kwargs.get("state", None)
         for cls in self.plugin.__class__.__mro__:  # Перебираем классы от текущего до object
            if hasattr(cls, "SM_preBlast") and cls != self.__class__:
@@ -194,7 +198,7 @@ class Prism_Atheneum_externalAccess_Functions(QWidget):
         self.w_entities = EntityWidget.EntityWidget(core=self.core, refresh=False)
         self.splitter_5.insertWidget(0, self.w_entities)
     def rf(self):
-        print("refresh")
+        pass
 class atheneum(QWidget, Atheneum_ui.Ui_w_Atheneum):
     def __init__(self, core, importState=None, refresh=True):
         QWidget.__init__(self)
@@ -233,7 +237,6 @@ class atheneum(QWidget, Atheneum_ui.Ui_w_Atheneum):
         
     def libselect(self):
         #selected_index = self.cb_lib.currentIndex()
-        #print(self.cb_lib.itemData(selected_index))
         data = self.cb_lib.currentText()
         self.refresh(data,"","asset")
         return data
@@ -394,7 +397,6 @@ class atheneum(QWidget, Atheneum_ui.Ui_w_Atheneum):
         self.refresh(path,name["asset"],arg,current)
 
     def asset_import(self, it):
-        #print("aaaa")
         row = it.row()
         #    column = mi.column()
 
@@ -413,20 +415,19 @@ class atheneum(QWidget, Atheneum_ui.Ui_w_Atheneum):
 
 
 
-    def asset_import1(self, it, col, arg,current=""):
-        print("count")
-        path = os.path.join(current,self.tw_versions.item(it.row(), 0).text())
-        name = self.getExt(path)[0]
-        fullPath = os.path.join(current,self.tw_versions.item(it.row(), 0).text(),"centimeter",name)
-        soft = self.core.appPlugin.pluginName
-        if soft == "Cinema":
-            self.ImportCinema(fullPath)
-        elif soft == "Maya":
-            self.ImportMaya(fullPath)
-        elif soft == "Houdini":
-            self.ImportHoudini(fullPath)            
-        elif  soft == "Standalone":
-            self.ImportStdl(fullPath)  
+    # def asset_import1(self, it, col, arg,current=""):
+        # path = os.path.join(current,self.tw_versions.item(it.row(), 0).text())
+        # name = self.getExt(path)[0]
+        # fullPath = os.path.join(current,self.tw_versions.item(it.row(), 0).text(),"centimeter",name)
+        # soft = self.core.appPlugin.pluginName
+        # if soft == "Cinema":
+            # self.ImportCinema(fullPath)
+        # elif soft == "Maya":
+            # self.ImportMaya(fullPath)
+        # elif soft == "Houdini":
+            # self.ImportHoudini(fullPath)            
+        # elif  soft == "Standalone":
+            # self.ImportStdl(fullPath)  
     
     def getData(self, path):
         ifyml = os.path.join(path.replace("\centimeter",""),"versioninfo.yml")
@@ -466,7 +467,6 @@ class atheneum(QWidget, Atheneum_ui.Ui_w_Atheneum):
             else:
                 assets_list = os.listdir(path)
             for i in assets_list:
-                print("SSS ", i)
                 if "." in i:
                     if i.split(".")[1] not in blacklistExt:
                         return i, i.split(".")[1]
@@ -481,7 +481,7 @@ class atheneum(QWidget, Atheneum_ui.Ui_w_Atheneum):
         from c4d import documents, plugins
         doc = documents.GetActiveDocument()
         doc.StartUndo()
-        print("GGG ",file)
+
         flags = c4d.SCENEFILTER_OBJECTS | c4d.SCENEFILTER_MATERIALS | c4d.SCENEFILTER_MERGESCENE # Merge objects and materials
         c4d.documents.MergeDocument(doc, file, flags) # Merge asset to active project
         c4d.EventAdd() # Refresh Cinema 4D

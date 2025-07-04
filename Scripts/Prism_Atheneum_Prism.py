@@ -79,7 +79,50 @@ class Prism_Atheneum_Prism(object):
         self.core.registerCallback("openPBFileContextMenu", self.openPBFileContextMenu, plugin=self.plugin)
         self.core.registerCallback("getStateMenu", self.getStateMenu, plugin=self.plugin)
 
+        # self.core.registerCallback("onStateSettingsLoaded", self.onStateSettingsLoaded, plugin=self.plugin)
+        
+        self.core.registerCallback("sm_export_updateUi", self.sm_export_updateUi, plugin=self.plugin)
+        
 
+    @err_catcher(name=__name__)
+    def sm_export_updateUi(self, *args):
+        origint = args[0]
+        # shotName= "ep01-sq015-sh025"
+        # shotData= {'type': 'shot', 'sequence': 'sq010', 'shot': 'sh020', 'episode': 'ep01'}
+        index = origint.cb_sCamShot.currentIndex()
+        if index == 0:
+            shots = origint.core.entities.getShots()
+
+            curfile= origint.core.getCurrentFileName()
+            fnameData = origint.core.getScenefileData(curfile, getEntityFromPath=True)
+
+
+            shotName=origint.core.entities.getShotName(fnameData).lower()
+
+            shotData = {"type": "shot", "sequence": fnameData["sequence"], "shot": fnameData["shot"]}
+            if "episode" in fnameData:
+               shotData["episode"] = fnameData["episode"]#
+
+            origint.cb_sCamShot.addItem(shotName, shotData)
+            
+            count = origint.cb_sCamShot.count()
+            if count > 0:
+                origint.cb_sCamShot.setCurrentIndex(count - 1)
+
+        
+        
+    # @err_catcher(name=__name__)
+    # def onStateSettingsLoaded(self, *args):
+        # print("***!")
+        # origint = args[0]
+        # data = args[1]
+        
+
+        # if "currentscamshot" in data:
+            # idx = origint.cb_sCamShot.findText("ep01_sq010_sh020")
+            # print("***!2 ",idx)
+            # if idx != -1:
+                # origint.cb_sCamShot.setCurrentIndex(idx)
 
 
     @err_catcher(name=__name__)
@@ -165,7 +208,7 @@ class Prism_Atheneum_Prism(object):
 
         
     def onStateManagerOpen(self, *args):
-        print("PPPPPP")
+
         # Create preview on publlish >>>
         if not args:
             return
@@ -182,17 +225,16 @@ class Prism_Atheneum_Prism(object):
                 count = 0
                 for i in state_manager.states:
 
-                    print(i.ui.objectName())
+
                     #if hasattr(i.ui, 'property'):
                     #    print(i.ui.property('name'))
                     if i.checkState(0) == Qt.Checked:
                         count+=1
                         if str(i.ui.objectName()) != "wg_Export":
                             count+=1 
-                print("COunt ", count)
+
                 if count == 1:
                     checked = True
-                print("checked ", checked)
                 
                 if checked and state_manager.previewImg == None:
                     state_manager.getPreview()
@@ -202,9 +244,7 @@ class Prism_Atheneum_Prism(object):
             state_manager._is_publish_wrapped = True
         # Create preview on publlish <<<
 
-    #def postPublish(self, *args, **kwargs):
-     #   print("@@@> ", args)
-      #  print("@-@-@> ", kwargs)
+
 
     def postExport(self, **kwargs):
         scenefile_path = kwargs['scenefile'].split(".")[0]+"preview.jpg"
@@ -237,10 +277,9 @@ class Prism_Atheneum_Prism(object):
                 model = index.model()
 
                 if model is not None:
-                    data = model.data(first_col_index, Qt.UserRole)
-                    print(data)
+
                     for i in data:
-                        print(">> ", i, "- ", data[i])
+
                         
                     required_keys = ["path", "asset", "task", "version"]
                     if isinstance(data, dict) and all(k in data for k in required_keys):
@@ -251,7 +290,7 @@ class Prism_Atheneum_Prism(object):
                             data["product"] + "_" +
                             data["version"] + "preview.jpg"
                         )
-                        print(prvPath)
+
                         if os.path.exists(prvPath):
                             self.detailWin = QFrame()
                             ss = getattr(self.core.appPlugin, "getFrameStyleSheet", lambda x: "")(self)
@@ -292,12 +331,7 @@ class Prism_Atheneum_Prism(object):
                                     self.detailWin = None
 
                             self.detailWin.mousePressEvent = close_on_click
-                    else:
-                        print(f"[Atheneum] Пропущено: отсутствуют ключи в data — {data}")
-                else:
-                    print("[Atheneum] Нет model у index")
-            else:
-                print("[Atheneum] Невалидный index")
+
 
             if original_mouse_press:
                 original_mouse_press(event)
