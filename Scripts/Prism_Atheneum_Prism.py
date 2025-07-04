@@ -86,6 +86,7 @@ class Prism_Atheneum_Prism(object):
 
     @err_catcher(name=__name__)
     def sm_export_updateUi(self, *args):
+        print("9999999")
         origint = args[0]
         # shotName= "ep01-sq015-sh025"
         # shotData= {'type': 'shot', 'sequence': 'sq010', 'shot': 'sh020', 'episode': 'ep01'}
@@ -278,7 +279,7 @@ class Prism_Atheneum_Prism(object):
 
                 if model is not None:
 
-                    for i in data:
+                    #for i in data:
 
                         
                     required_keys = ["path", "asset", "task", "version"]
